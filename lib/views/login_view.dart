@@ -34,7 +34,7 @@ class _LgnVwSt extends State<LoginView> {
       final res = await DbSrv.inst.obUsr(_cUsr.text);
       if (res != null && res['sen'] == _cSen.text) {
         if (mounted) {
-          Navigator.pushNamed(context, AppRoutes.PRINCIPAL, arguments: res['nom']);
+          Navigator.pushNamed(context, AppRoutes.PRINCIPAL, arguments: {'nom': res['nom'], 'usr': res['usr']});
         }
       } else {
         if (mounted) {
@@ -46,10 +46,10 @@ class _LgnVwSt extends State<LoginView> {
     }
   }
 
-  void _lgrBtm(String nom, String sen) {
+  void _lgrBtm(String nom, String usr, String sen) {
     if (_cPin.text == sen) {
       Navigator.pop(context);
-      Navigator.pushNamed(context, AppRoutes.PRINCIPAL, arguments: nom);
+      Navigator.pushNamed(context, AppRoutes.PRINCIPAL, arguments: {'nom': nom, 'usr': usr});
     } else {
       _msg('Senha incorreta');
     }
@@ -72,7 +72,7 @@ class _LgnVwSt extends State<LoginView> {
     );
   }
 
-  void _bio(String nom) async {
+  void _bio(String nom, String usr) async {
     try {
       final can = await _auth.canCheckBiometrics;
       final sup = await _auth.isDeviceSupported();
@@ -94,7 +94,7 @@ class _LgnVwSt extends State<LoginView> {
       
       if (aut && mounted) {
         Navigator.pop(context);
-        Navigator.pushNamed(context, AppRoutes.PRINCIPAL, arguments: nom);
+        Navigator.pushNamed(context, AppRoutes.PRINCIPAL, arguments: {'nom': nom, 'usr': usr});
       }
     } catch (e) {
       _msg('Erro ao chamar o sensor nativo: $e');
@@ -124,7 +124,7 @@ class _LgnVwSt extends State<LoginView> {
                       Text('Olá, $nom', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
                       IconButton(
                         icon: const Icon(Icons.fingerprint, color: Colors.purple, size: 32),
-                        onPressed: () => _bio(nom),
+                        onPressed: () => _bio(nom, usr),
                       ),
                     ],
                   ),
@@ -133,10 +133,12 @@ class _LgnVwSt extends State<LoginView> {
                   TextField(
                     controller: _cPin,
                     obscureText: _oPin,
+                    maxLength: 8,
                     style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       labelText: 'Senha de acesso',
                       labelStyle: const TextStyle(color: Colors.grey),
+                      counterText: '',
                       suffixIcon: IconButton(
                         icon: Icon(_oPin ? Icons.visibility_off : Icons.visibility, color: Colors.purple),
                         onPressed: () => setSt(() => _oPin = !_oPin),
@@ -147,7 +149,7 @@ class _LgnVwSt extends State<LoginView> {
                   ),
                   const SizedBox(height: 24),
                   ElevatedButton(
-                    onPressed: () => _lgrBtm(nom, sen),
+                    onPressed: () => _lgrBtm(nom, usr, sen),
                     style: ElevatedButton.styleFrom(backgroundColor: Colors.purple, foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 16)),
                     child: const Text('Confirmar', style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
@@ -262,13 +264,15 @@ class _LgnVwSt extends State<LoginView> {
                 TextFormField(
                   controller: _cSen,
                   obscureText: _oSen,
+                  maxLength: 8,
                   style: const TextStyle(color: Colors.white),
                   decoration: InputDecoration(
                     labelText: 'Senha de Acesso',
                     labelStyle: const TextStyle(color: Colors.grey),
+                    counterText: '',
                     suffixIcon: IconButton(icon: Icon(_oSen ? Icons.visibility_off : Icons.visibility, color: Colors.purple), onPressed: () => setState(() => _oSen = !_oSen)),
                   ),
-                  validator: (val) => val == null || val.length != 8 ? 'Requer exatamente 8 caracteres' : null,
+                  validator: (val) => val == null || val.isEmpty || val.length > 8 ? 'No máximo 8 caracteres' : null,
                 ),
                 const SizedBox(height: 12),
                 Align(

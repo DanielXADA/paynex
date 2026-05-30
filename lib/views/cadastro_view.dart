@@ -9,14 +9,16 @@ class CadastroView extends StatefulWidget {
   const CadastroView({super.key});
 
   @override
-  State<CadastroView> createState() => _CadastroViewState();
+  State<CadastroView> createState() => _CdstrVwSt();
 }
 
-class _CadastroViewState extends State<CadastroView> {
+class _CdstrVwSt extends State<CadastroView> {
   final _chkFm = GlobalKey<FormState>();
   final _ctlNom = TextEditingController();
   final _ctlUsr = TextEditingController();
   final _ctlSen = TextEditingController();
+  final _ctlPin = TextEditingController();
+  final _ctlEml = TextEditingController();
   final _ctlCpf = TextEditingController();
   final _ctlTel = TextEditingController();
   final _ctlNsc = TextEditingController();
@@ -24,6 +26,7 @@ class _CadastroViewState extends State<CadastroView> {
   final _ctlEnd = TextEditingController();
   final _ctlNum = TextEditingController();
   bool _ocuSen = true;
+  bool _ocuPin = true;
   bool _clg = false;
 
   @override
@@ -31,6 +34,8 @@ class _CadastroViewState extends State<CadastroView> {
     _ctlNom.dispose();
     _ctlUsr.dispose();
     _ctlSen.dispose();
+    _ctlPin.dispose();
+    _ctlEml.dispose();
     _ctlCpf.dispose();
     _ctlTel.dispose();
     _ctlNsc.dispose();
@@ -81,6 +86,8 @@ class _CadastroViewState extends State<CadastroView> {
         'nom': _ctlNom.text,
         'usr': _ctlUsr.text,
         'sen': _ctlSen.text,
+        'pin': _ctlPin.text,
+        'eml': _ctlEml.text,
         'agc': agc,
         'cta': cta,
         'cpf': _ctlCpf.text,
@@ -133,13 +140,39 @@ class _CadastroViewState extends State<CadastroView> {
               TextFormField(
                 controller: _ctlSen,
                 obscureText: _ocuSen,
+                maxLength: 8,
                 style: const TextStyle(color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: 'Senha (8 dígitos)',
+                  labelText: 'Senha de Acesso (Max 8 dígitos)',
                   labelStyle: const TextStyle(color: Colors.grey),
+                  counterText: '',
                   suffixIcon: IconButton(icon: Icon(_ocuSen ? Icons.visibility_off : Icons.visibility, color: Colors.purple), onPressed: () => setState(() => _ocuSen = !_ocuSen)),
                 ),
-                validator: (val) => val == null || val.length != 8 ? 'Requer 8 dígitos' : null,
+                validator: (val) => val == null || val.isEmpty || val.length > 8 ? 'Requer até 8 caracteres' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _ctlPin,
+                obscureText: _ocuPin,
+                maxLength: 6,
+                keyboardType: TextInputType.number,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  labelText: 'PIN de Transação (6 números)',
+                  labelStyle: const TextStyle(color: Colors.grey),
+                  counterText: '',
+                  suffixIcon: IconButton(icon: Icon(_ocuPin ? Icons.visibility_off : Icons.visibility, color: Colors.purple), onPressed: () => setState(() => _ocuPin = !_ocuPin)),
+                ),
+                validator: (val) => val == null || val.length != 6 ? 'Requer exatamente 6 números' : null,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _ctlEml,
+                keyboardType: TextInputType.emailAddress,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(labelText: 'E-mail', labelStyle: TextStyle(color: Colors.grey), hintText: 'seuemail@provedor.com', hintStyle: TextStyle(color: Colors.white24)),
+                validator: (val) => val == null || !val.contains('@') ? 'Insira um e-mail válido' : null,
               ),
               const SizedBox(height: 16),
               TextFormField(

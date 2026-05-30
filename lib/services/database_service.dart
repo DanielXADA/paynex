@@ -16,7 +16,7 @@ class DbSrv {
   Future<Database> _initBd(String arq) async {
     final cam = await getDatabasesPath();
     final pth = join(cam, arq);
-    return await openDatabase(pth, version: 5, onCreate: _criarBd, onUpgrade: _atpBd);
+    return await openDatabase(pth, version: 8, onCreate: _criarBd, onUpgrade: _atpBd);
   }
 
   Future _criarBd(Database db, int ver) async {
@@ -26,6 +26,8 @@ class DbSrv {
         nom TEXT,
         usr TEXT,
         sen TEXT,
+        pin TEXT,
+        eml TEXT,
         agc TEXT,
         cta TEXT,
         cpf TEXT,
@@ -40,6 +42,7 @@ class DbSrv {
     await db.execute('''
       CREATE TABLE tnf (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usr TEXT,
         val REAL,
         rec TEXT,
         dat TEXT
@@ -48,7 +51,7 @@ class DbSrv {
   }
 
   Future _atpBd(Database db, int ant, int nov) async {
-    if (ant < 5) {
+    if (ant < 8) {
       await db.execute('DROP TABLE IF EXISTS usr');
       await db.execute('DROP TABLE IF EXISTS tnf');
       await _criarBd(db, nov);
@@ -81,17 +84,18 @@ class DbSrv {
     return null;
   }
 
-  Future<int> addTnf(double val, String rec) async {
+  Future<int> addTnf(double val, String rec, String usr) async {
     final db = await inst.bd;
     return await db.insert('tnf', {
+      'usr': usr,
       'val': val,
       'rec': rec,
       'dat': DateTime.now().toIso8601String(),
     });
   }
 
-  Future<List<Map<String, dynamic>>> obTnf() async {
+  Future<List<Map<String, dynamic>>> obTnf(String usr) async {
     final db = await inst.bd;
-    return await db.query('tnf', orderBy: 'dat DESC');
+    return await db.query('tnf', where: 'usr = ?', whereArgs: [usr], orderBy: 'dat DESC');
   }
 }
