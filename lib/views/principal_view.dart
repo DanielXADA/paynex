@@ -16,7 +16,7 @@ class _PrncVwSt extends State<PrincipalView> {
   bool _vsl = false;
   bool _vslDds = false;
   int _aba = 0;
-  double _sldBse = 0.00;
+  final double _sldBse = 0.00;
   File? _arqFt;
   final _pck = ImagePicker();
 
@@ -345,7 +345,11 @@ class _PrncVwSt extends State<PrincipalView> {
     for (var t in tnfs) {
       double v = t['val'] ?? 0.0;
       String r = t['rec'] ?? '';
-      if (r.contains('Depósito')) s += v; else s -= v;
+      if (r.contains('Depósito')) {
+        s += v;
+      } else {
+        s -= v;
+      }
     }
     return s;
   }

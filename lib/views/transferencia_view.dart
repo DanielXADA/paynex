@@ -43,7 +43,11 @@ class _TnfVwSt extends State<TransferenciaView> {
     for (var t in list) {
       double v = t['val'] ?? 0.0;
       String r = t['rec'] ?? '';
-      if (r.contains('Depósito')) s += v; else s -= v;
+      if (r.contains('Depósito')) {
+        s += v;
+      } else {
+        s -= v;
+      }
     }
     
     final u = await DbSrv.inst.obUsr(_usrLog);

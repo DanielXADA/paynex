@@ -231,7 +231,7 @@ class _LgnVwSt extends State<LoginView> {
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 24),
                           padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(color: const Color(0xff1f1f23), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.purple.withOpacity(0.3))),
+                          decoration: BoxDecoration(color: const Color(0xff1f1f23), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.purple.withValues(alpha: 0.3))),
                           child: Row(
                             children: [
                               const CircleAvatar(backgroundColor: Colors.purple, child: Icon(Icons.person, color: Colors.white)),
