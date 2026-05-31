@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import '../routes/app_routes.dart';
 import '../services/database_service.dart';
@@ -20,6 +21,20 @@ class _LgnVwSt extends State<LoginView> {
   bool _oSen = true;
   bool _oPin = true;
 
+  String _nomeCard = '';
+  String _detalhesCard = '';
+  String _usuarioCard = '';
+  String _agcCard = '';
+  String _ctaCard = '';
+  String _senCard = '';
+  bool _temUsuarioNoCard = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarUltimoUsuario();
+  }
+
   @override
   void dispose() {
     _cUsr.dispose();
@@ -29,12 +44,83 @@ class _LgnVwSt extends State<LoginView> {
     super.dispose();
   }
 
+  void _carregarUltimoUsuario() async {
+    final ult = await DbSrv.inst.obUltUsr();
+    if (ult != null) {
+      setState(() {
+        _nomeCard = ult['nom'].toString().toUpperCase();
+        _detalhesCard = 'Ag: ${ult['agc'] ?? '0001'} • Cta: ${ult['cta'] ?? ''}';
+        _usuarioCard = ult['usr'].toString();
+        _agcCard = ult['agc']?.toString() ?? '0001';
+        _ctaCard = ult['cta']?.toString() ?? '';
+        _senCard = ult['sen']?.toString() ?? '';
+        _temUsuarioNoCard = true;
+      });
+    } else {
+      setState(() {
+        _temUsuarioNoCard = false;
+      });
+    }
+  }
+
+  void _buscarUsuarioDigitado(String valor) async {
+    if (valor.trim().isEmpty) {
+      final ult = await DbSrv.inst.obUltUsr();
+      if (ult != null) {
+        setState(() {
+          _nomeCard = ult['nom'].toString().toUpperCase();
+          _detalhesCard = 'Ag: ${ult['agc'] ?? '0001'} • Cta: ${ult['cta'] ?? ''}';
+          _usuarioCard = ult['usr'].toString();
+          _agcCard = ult['agc']?.toString() ?? '0001';
+          _ctaCard = ult['cta']?.toString() ?? '';
+          _senCard = ult['sen']?.toString() ?? '';
+          _temUsuarioNoCard = true;
+        });
+      } else {
+        setState(() {
+          _nomeCard = '';
+          _detalhesCard = '';
+          _usuarioCard = '';
+          _agcCard = '';
+          _ctaCard = '';
+          _senCard = '';
+          _temUsuarioNoCard = false;
+        });
+      }
+      return;
+    }
+
+    final u = await DbSrv.inst.obUsr(valor.trim());
+    if (u != null) {
+      setState(() {
+        _nomeCard = u['nom'].toString().toUpperCase();
+        _detalhesCard = 'Ag: ${u['agc'] ?? '0001'} • Cta: ${u['cta'] ?? ''}';
+        _usuarioCard = u['usr'].toString();
+        _agcCard = u['agc']?.toString() ?? '0001';
+        _ctaCard = u['cta']?.toString() ?? '';
+        _senCard = u['sen']?.toString() ?? '';
+        _temUsuarioNoCard = true;
+      });
+    } else {
+      setState(() {
+        _nomeCard = '';
+        _detalhesCard = '';
+        _usuarioCard = '';
+        _agcCard = '';
+        _ctaCard = '';
+        _senCard = '';
+        _temUsuarioNoCard = false;
+      });
+    }
+  }
+
   void _logar() async {
     if (_fK.currentState!.validate()) {
-      final res = await DbSrv.inst.obUsr(_cUsr.text);
+      final res = await DbSrv.inst.obUsr(_cUsr.text.trim());
       if (res != null && res['sen'] == _cSen.text) {
+        await DbSrv.inst.marcarLogin(res['usr'].toString());
         if (mounted) {
-          Navigator.pushNamed(context, AppRoutes.PRINCIPAL, arguments: {'nom': res['nom'], 'usr': res['usr']});
+          Navigator.pushReplacementNamed(context, AppRoutes.PRINCIPAL, arguments: {'nom': res['nom'], 'usr': res['usr']});
         }
       } else {
         if (mounted) {
@@ -46,10 +132,13 @@ class _LgnVwSt extends State<LoginView> {
     }
   }
 
-  void _lgrBtm(String nom, String usr, String sen) {
+  void _lgrBtm(String nom, String usr, String sen) async {
     if (_cPin.text == sen) {
-      Navigator.pop(context);
-      Navigator.pushNamed(context, AppRoutes.PRINCIPAL, arguments: {'nom': nom, 'usr': usr});
+      await DbSrv.inst.marcarLogin(usr);
+      if (mounted) {
+        Navigator.pop(context);
+        Navigator.pushReplacementNamed(context, AppRoutes.PRINCIPAL, arguments: {'nom': nom, 'usr': usr});
+      }
     } else {
       _msg('Senha incorreta');
     }
@@ -93,8 +182,11 @@ class _LgnVwSt extends State<LoginView> {
       );
       
       if (aut && mounted) {
-        Navigator.pop(context);
-        Navigator.pushNamed(context, AppRoutes.PRINCIPAL, arguments: {'nom': nom, 'usr': usr});
+        await DbSrv.inst.marcarLogin(usr);
+        if (mounted) {
+          Navigator.pop(context);
+          Navigator.pushReplacementNamed(context, AppRoutes.PRINCIPAL, arguments: {'nom': nom, 'usr': usr});
+        }
       }
     } catch (e) {
       _msg('Erro ao chamar o sensor nativo: $e');
@@ -121,7 +213,9 @@ class _LgnVwSt extends State<LoginView> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text('Olá, $nom', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                      Expanded(
+                        child: Text('Olá, $nom', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+                      ),
                       IconButton(
                         icon: const Icon(Icons.fingerprint, color: Colors.purple, size: 32),
                         onPressed: () => _bio(nom, usr),
@@ -181,19 +275,23 @@ class _LgnVwSt extends State<LoginView> {
             TextButton(
               onPressed: () async {
                 final dts = await DbSrv.inst.recSen(_cCpf.text);
-                Navigator.pop(dCtx);
+                if (mounted) Navigator.pop(dCtx);
                 if (dts != null) {
-                  showDialog(
-                    context: ctx,
-                    builder: (rCtx) => AlertDialog(
-                      backgroundColor: const Color(0xff1f1f23),
-                      title: const Text('Dados Encontrados', style: TextStyle(color: Colors.white)),
-                      content: Text('Usuário: ${dts['usr']}\nSenha: ${dts['sen']}', style: const TextStyle(color: Colors.white)),
-                      actions: [TextButton(onPressed: () => Navigator.pop(rCtx), child: const Text('OK', style: TextStyle(color: Colors.purple)))],
-                    ),
-                  );
+                  if (mounted) {
+                    showDialog(
+                      context: ctx,
+                      builder: (rCtx) => AlertDialog(
+                        backgroundColor: const Color(0xff1f1f23),
+                        title: const Text('Dados Encontrados', style: TextStyle(color: Colors.white)),
+                        content: Text('Usuário: ${dts['usr']}\nSenha: ${dts['sen']}', style: const TextStyle(color: Colors.white)),
+                        actions: [TextButton(onPressed: () => Navigator.pop(rCtx), child: const Text('OK', style: TextStyle(color: Colors.purple)))],
+                      ),
+                    );
+                  }
                 } else {
-                  ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('CPF não cadastrado')));
+                  if (mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(const SnackBar(content: Text('CPF não cadastrado')));
+                  }
                 }
               },
               child: const Text('Buscar', style: TextStyle(color: Colors.purple)),
@@ -207,7 +305,7 @@ class _LgnVwSt extends State<LoginView> {
   @override
   Widget build(BuildContext ctx) {
     return Scaffold(
-      backgroundColor: const Color(0xff121214),
+      backgroundColor: const Color(0xff0a0a0c),
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
@@ -221,44 +319,41 @@ class _LgnVwSt extends State<LoginView> {
                 const SizedBox(height: 12),
                 const Text('PAYNEX', textAlign: TextAlign.center, style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2)),
                 const SizedBox(height: 32),
-                FutureBuilder<Map<String, dynamic>?>(
-                  future: DbSrv.inst.obUltUsr(),
-                  builder: (context, snp) {
-                    if (snp.hasData && snp.data != null) {
-                      final dt = snp.data!;
-                      return GestureDetector(
-                        onTap: () => _btm(ctx, dt['nom'], dt['usr'], dt['agc'], dt['cta'], dt['sen']),
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 24),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(color: const Color(0xff1f1f23), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.purple.withValues(alpha: 0.3))),
-                          child: Row(
-                            children: [
-                              const CircleAvatar(backgroundColor: Colors.purple, child: Icon(Icons.person, color: Colors.white)),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(dt['nom'].toString().toUpperCase(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis)),
-                                    Text('Ag: ${dt['agc']} • Cta: ${dt['cta']}', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-                                  ],
-                                ),
-                              ),
-                              const Icon(Icons.touch_app, color: Colors.purple),
-                            ],
+                if (_temUsuarioNoCard)
+                  GestureDetector(
+                    onTap: () => _btm(ctx, _nomeCard, _usuarioCard, _agcCard, _ctaCard, _senCard),
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xff1f1f23), 
+                        borderRadius: BorderRadius.circular(12), 
+                        border: Border.all(color: Colors.purple.withOpacity(0.3))
+                      ),
+                      child: Row(
+                        children: [
+                          const CircleAvatar(backgroundColor: Colors.purple, child: Icon(Icons.person, color: Colors.white)),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(_nomeCard, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, overflow: TextOverflow.ellipsis)),
+                                Text(_detalhesCard, style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
+                          const Icon(Icons.touch_app, color: Colors.purple),
+                        ],
+                      ),
+                    ),
+                  ),
                 TextFormField(
                   controller: _cUsr,
                   style: const TextStyle(color: Colors.white),
                   decoration: const InputDecoration(labelText: 'Usuário', labelStyle: TextStyle(color: Colors.grey)),
-                  validator: (val) => val == null || val.isEmpty ? 'Insira seu usuário' : null,
+                  validator: (val) => val == null || val.trim().isEmpty ? 'Insira seu usuário' : null,
+                  onChanged: _buscarUsuarioDigitado,
                 ),
                 const SizedBox(height: 20),
                 TextFormField(
